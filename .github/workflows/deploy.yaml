@@ -1,0 +1,91 @@
+name: Delete ERE plan and deploy instances
+on:
+  workflow_dispatch:
+env:
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: codedeploy
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ere-validate-deploy:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code in repository
+        uses: actions/checkout@v4
+
+      - name: Terraform installation
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      
+      - name: Configure AWS credentials for Dev/Test (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::905418049972:role/GitHubActions-CodeDeploy-CICD-Role
+          role-session-name: GitHubActions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Clean Terraform CLI config
+        run: rm -f ~/.terraformrc
+      
+      - name: Terraform initlization
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        id: planop
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          export exitcode=0
+          terraform plan -var-file=tfvars/prod.tfvars \
+            -detailed-exitcode \
+            -no-color \
+            -out=tfplan || export exitcode=$?
+
+          echo "exitcoderesult=$exitcode"
+          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+
+          if [ $exitcode -eq 1 ]; then
+            echo "Terraform Plan Failed!"
+            exit 1
+          else
+            exit 0
+          fi
+      
+      - name: Publish Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
+          
+      - name: Create html output
+        id: planstr
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          TERRAFORM_PLAN=$(terraform show -no-color tfplan)
+
+          delimiter="$(openssl rand -hex 8)"
+          echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
+          echo "## Terraform Plan Output" >> $GITHUB_OUTPUT
+          echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo '```terraform' >> $GITHUB_OUTPUT
+          echo "$TERRAFORM_PLAN" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "</details>" >> $GITHUB_OUTPUT
+          echo "${delimiter}" >> $GITHUB_OUTPUT
+
+      - name: Publish Terraform Plan to Task Summary
+        env:
+          SUMMARY: ${{ steps.planstr.outputs.summary }}
+        run: |
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+
+          
+      - name: Terraform detroy
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -var-file=tfvars/prod.tfvars -auto-approve
