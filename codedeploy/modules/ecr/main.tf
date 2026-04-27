@@ -21,7 +21,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
   })
 }
 
-resource "aws_codestarconnections_connection" "github" {
-  name          = "github-connection"
-  provider_type = "GitHub"
-}
+# resource "aws_codestarconnections_connection" "github" {
+#   name          = "github-connection"
+#   provider_type = "GitHub"
+# }

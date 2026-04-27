@@ -28,7 +28,7 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "codeconnections:GetConnectionToken",
       "codeconnections:GetConnection"
         ]
-        Resource = "arn:aws:codestar-connections:us-east-1:905418049972:connection/6f04d26e-7bd7-41e4-aa3c-91efa7dea52c"
+        Resource = "arn:aws:codeconnections:us-east-1:905418049972:connection/59775662-7e3b-4bc3-b928-b0675fb933f4"
       },
 
       {
@@ -53,7 +53,16 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "logs:PutLogEvents"
         ]
         Resource = "*"
-      }
+      },
+      {
+  Effect = "Allow"
+  Action = [
+    "s3:GetObject",
+    "s3:GetObjectVersion",
+    "s3:PutObject"
+  ]
+  Resource = "*"
+}
     ]
   })
 }
@@ -69,7 +78,7 @@ resource "aws_codebuild_project" "springboot" {
     buildspec = "buildspec.yaml"
     auth {
       type     = "CODECONNECTIONS"
-      resource = "arn:aws:codestar-connections:us-east-1:905418049972:connection/6f04d26e-7bd7-41e4-aa3c-91efa7dea52c"
+      resource = "arn:aws:codeconnections:us-east-1:905418049972:connection/59775662-7e3b-4bc3-b928-b0675fb933f4"
     }
   }
 
@@ -94,12 +103,12 @@ resource "aws_codebuild_project" "springboot" {
     environment_variable {
                name  = "DOCKER_USERNAME"
                type  = "PLAINTEXT"
-               value = "XXXXXm"
+               value = "karthikeyan.baluchamy@outlook.com"
             }
            environment_variable {
                name  = "DOCKER_PASSWORD"
                type  = "PLAINTEXT"
-               value = "XXXXX"
+               value = "Vidhya1982"
             }
   }
 
