@@ -108,7 +108,7 @@ resource "aws_codebuild_project" "springboot" {
            environment_variable {
                name  = "DOCKER_PASSWORD"
                type  = "PLAINTEXT"
-               value = "Vidhya1982"
+               value = ""
             }
   }
 
